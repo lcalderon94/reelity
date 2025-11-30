@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "379461142898",
+    "project_id": "reelity-app",
+    "storage_bucket": "reelity-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379461142898:android:cda9501fb305f8603a35eb",
+        "android_client_info": {
+          "package_name": "com.example.reelity"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMF3NMXWKkDWalApMtjS012O5BwhzpjK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
