@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Comment {
   final String id;
   final String episodeId;
@@ -37,7 +39,36 @@ class Comment {
     }
   }
 
-  // Convertir a JSON
+  // Convertir a Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'episodeId': episodeId,
+      'userId': userId,
+      'username': username,
+      'userAvatarUrl': userAvatarUrl,
+      'text': text,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'likes': likes,
+      'isLiked': isLiked,
+    };
+  }
+
+  // Crear desde Firestore
+  factory Comment.fromFirestore(Map<String, dynamic> data, String id) {
+    return Comment(
+      id: id,
+      episodeId: data['episodeId'] as String,
+      userId: data['userId'] as String,
+      username: data['username'] as String,
+      userAvatarUrl: data['userAvatarUrl'] as String,
+      text: data['text'] as String,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      likes: data['likes'] as int? ?? 0,
+      isLiked: data['isLiked'] as bool? ?? false,
+    );
+  }
+
+  // Convertir a JSON (compatibilidad)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -52,7 +83,7 @@ class Comment {
     };
   }
 
-  // Crear desde JSON
+  // Crear desde JSON (compatibilidad)
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
       id: json['id'] as String,
@@ -67,7 +98,6 @@ class Comment {
     );
   }
 
-  // Copiar con cambios
   Comment copyWith({
     String? id,
     String? episodeId,

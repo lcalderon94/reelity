@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class User {
   final String id;
   final String name;
   final String email;
-  final String password; // Añadido para autenticación
+  final String password; // NO se guarda en Firestore
   final String? username;
   final String? avatarUrl;
   final String? bio;
@@ -19,7 +21,33 @@ class User {
     required this.createdAt,
   });
 
-  // Convertir a JSON
+  // Convertir a Firestore (sin password)
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'email': email,
+      'username': username,
+      'avatarUrl': avatarUrl,
+      'bio': bio,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  // Crear desde Firestore
+  factory User.fromFirestore(Map<String, dynamic> data, String id) {
+    return User(
+      id: id,
+      name: data['name'] as String,
+      email: data['email'] as String,
+      password: '', // No guardamos password en Firestore
+      username: data['username'] as String?,
+      avatarUrl: data['avatarUrl'] as String?,
+      bio: data['bio'] as String?,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+    );
+  }
+
+  // Convertir a JSON (para compatibilidad con MockDataService)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -33,7 +61,7 @@ class User {
     };
   }
 
-  // Crear desde JSON
+  // Crear desde JSON (para compatibilidad con MockDataService)
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as String,

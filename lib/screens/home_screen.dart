@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../utils/colors.dart';
-import '../utils/text_styles.dart';
 import '../widgets/season_card.dart';
-import '../services/mock_data_service.dart';
+import '../services/firebase_auth_service.dart';
+import '../services/firestore_service.dart';
 import '../models/season.dart';
-import '../models/group.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,290 +12,153 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-  final MockDataService _mockService = MockDataService();
-
-  // Listas para las temporadas
-  List<Season> _activeSeasons = [];
-  List<Season> _pastSeasons = [];
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
-    _loadSeasons();
-  }
-
-  // Cargar temporadas desde MockDataService
-  void _loadSeasons() {
-    setState(() {
-      _activeSeasons = _mockService.getActiveSeasons();
-      _pastSeasons = _mockService.getPastSeasons();
-    });
-  }
-
-  void _onNavBarTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // TODO: Implementar navegación a otras secciones
+    print('🏠 HomeScreen initState - Usuario: ${_authService.currentUser?.uid}');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header con logo y acciones
-            SliverAppBar(
-              floating: true,
-              backgroundColor: AppColors.background,
-              elevation: 0,
-              title: Text(
-                'REELITY',
-                style: AppTextStyles.logo.copyWith(fontSize: 28),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Búsqueda próximamente'),
-                        backgroundColor: AppColors.info,
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notificaciones próximamente'),
-                        backgroundColor: AppColors.info,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
+    final user = _authService.currentUser;
 
-            // Contenido principal
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // Sección: Temporadas activas
-                  _buildSectionHeader(
-                    'Temporadas activas',
-                    'Sigue el ritmo de tus grupos',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSeasonCarousel(_activeSeasons),
-
-                  const SizedBox(height: 40),
-
-                  // Sección: Temporadas pasadas
-                  _buildSectionHeader(
-                    'Temporadas pasadas',
-                    'Revive tus mejores momentos',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSeasonCarousel(_pastSeasons),
-
-                  const SizedBox(height: 40),
-
-                  // Botón para crear nueva temporada
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        gradient: AppColors.cardGradient,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.border,
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: const Icon(
-                              Icons.add_circle_outline,
-                              size: 48,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Crea una nueva temporada',
-                            style: AppTextStyles.h4,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Invita a tus amigos y empieza un nuevo reality',
-                            style: AppTextStyles.body2.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Crear temporada próximamente'),
-                                  backgroundColor: AppColors.info,
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Empezar ahora',
-                              style: AppTextStyles.button,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      // Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: AppColors.border,
-              width: 1,
-            ),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onNavBarTap,
-          backgroundColor: AppColors.backgroundLight,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textTertiary,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.groups_rounded),
-              label: 'Grupos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.video_library_rounded),
-              label: 'Retos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: 'Perfil',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: AppTextStyles.h3,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: AppTextStyles.body2.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSeasonCarousel(List<Season> seasons) {
-    if (seasons.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              'No hay temporadas aquí todavía',
-              style: AppTextStyles.body2.copyWith(
-                color: AppColors.textTertiary,
-              ),
-            ),
-          ),
-        ),
+    // Si no hay usuario, redirigir al login
+    if (user == null) {
+      print('❌ No hay usuario en HomeScreen, redirigiendo a login');
+      Future.microtask(() => Navigator.pushReplacementNamed(context, '/login'));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return SizedBox(
-      height: 300,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        scrollDirection: Axis.horizontal,
-        itemCount: seasons.length,
-        itemBuilder: (context, index) {
-          final season = seasons[index];
-          final group = _mockService.getGroupById(season.groupId);
+    print('✅ Usuario autenticado en HomeScreen: ${user.uid}');
 
-          return SeasonCard(
-            imageUrl: season.imageUrl,
-            seasonName: season.name,
-            groupName: group?.name ?? 'Grupo',
-            currentDay: season.currentDay,
-            totalDays: season.totalDays,
-            hasUploadedToday: season.hasUploadedToday,
-            streakDays: season.streakDays,
-            onTap: () {
-              context.push('/series/${season.id}');
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 40,
+        ),
+        actions: [
+          // Botón de logout temporal para debug
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await _authService.logout();
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
             },
+          ),
+        ],
+      ),
+      body: StreamBuilder<List<Season>>(
+        stream: _firestoreService.getActiveSeasons(user.uid),
+        builder: (context, snapshot) {
+          print('📡 StreamBuilder state: ${snapshot.connectionState}');
+
+          if (snapshot.hasError) {
+            print('❌ Error en StreamBuilder: ${snapshot.error}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            print('⏳ Esperando datos de Firestore...');
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final seasons = snapshot.data ?? [];
+          print('📊 Temporadas recibidas: ${seasons.length}');
+
+          if (seasons.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.movie_outlined, color: Colors.grey, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No tienes temporadas activas',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Únete a un grupo para empezar',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {});
+            },
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                const Text(
+                  'Temporadas activas',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...seasons.map((season) {
+                  print('🎬 Renderizando temporada: ${season.name}');
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: FutureBuilder<String>(
+                      future: _firestoreService.getGroupName(season.groupId),
+                      builder: (context, groupSnapshot) {
+                        final groupName = groupSnapshot.data ?? 'Cargando...';
+
+                        return SeasonCard(
+                          seasonName: season.name,
+                          groupName: groupName,
+                          currentDay: season.currentDay,
+                          totalDays: season.totalDays,
+                          streakDays: season.streakDays,
+                          thumbnailUrl: season.thumbnailUrl ?? '',
+                          onTap: () {
+                            print('🎯 Navegando a serie: ${season.id}');
+                            Navigator.pushNamed(
+                              context,
+                              '/series/${season.id}',
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
           );
         },
       ),

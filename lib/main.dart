@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'utils/colors.dart';
 import 'utils/text_styles.dart';
 import 'screens/splash_screen.dart';
@@ -13,15 +15,15 @@ import 'screens/series_detail_screen.dart';
 import 'screens/video_player_screen.dart';
 import 'screens/user_profile_screen.dart';
 import 'widgets/main_scaffold.dart';
-import 'services/mock_data_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar MockDataService con datos fake
-  await MockDataService().init();
+  // 🔥 Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
-  // Configurar la barra de estado (status bar)
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -47,13 +49,10 @@ class ReelityApp extends StatelessWidget {
     );
   }
 
-  // Configuración del tema dark estilo Netflix
   ThemeData _buildTheme() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-
-      // Colores principales
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.primary,
       colorScheme: const ColorScheme.dark(
@@ -63,29 +62,19 @@ class ReelityApp extends StatelessWidget {
         background: AppColors.background,
         error: AppColors.error,
       ),
-
-      // AppBar theme
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: false,
-        iconTheme: const IconThemeData(
-          color: AppColors.textPrimary,
-        ),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: AppTextStyles.h4,
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
-
-      // Card theme
       cardTheme: CardTheme(
         color: AppColors.cardBackground,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-
-      // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.cardBackground,
@@ -107,8 +96,6 @@ class ReelityApp extends StatelessWidget {
         ),
         hintStyle: AppTextStyles.inputHint,
       ),
-
-      // Bottom navigation bar theme
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.backgroundLight,
         selectedItemColor: AppColors.primary,
@@ -116,22 +103,15 @@ class ReelityApp extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-
-      // Divider theme
       dividerTheme: const DividerThemeData(
         color: AppColors.divider,
         thickness: 1,
       ),
-
-      // Icon theme
-      iconTheme: const IconThemeData(
-        color: AppColors.textPrimary,
-      ),
+      iconTheme: const IconThemeData(color: AppColors.textPrimary),
     );
   }
 }
 
-// Configuración de rutas con GoRouter
 final _router = GoRouter(
   initialLocation: '/splash',
   routes: [
@@ -163,9 +143,7 @@ final _router = GoRouter(
     GoRoute(
       path: '/home',
       name: 'home',
-      builder: (context, state) => const MainScaffold(
-        child: HomeScreen(),
-      ),
+      builder: (context, state) => const MainScaffold(child: HomeScreen()),
     ),
     GoRoute(
       path: '/series/:seasonId',
@@ -183,7 +161,6 @@ final _router = GoRouter(
         return VideoPlayerScreen(episodeId: episodeId);
       },
     ),
-    // NUEVA RUTA: Perfil de usuario
     GoRoute(
       path: '/user-profile/:userId',
       name: 'user-profile',

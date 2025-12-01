@@ -1,12 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Episode {
   final String id;
   final String seasonId;
-  final String userId; // NUEVO: ID del usuario que subió el video
+  final String userId;
   final int episodeNumber;
   final String title;
   final String? description;
   final String thumbnailUrl;
-  final String videoUrl; // URL del video o ID de YouTube
+  final String videoUrl;
   final int durationSeconds;
   final DateTime uploadedAt;
   final int views;
@@ -16,7 +18,7 @@ class Episode {
   Episode({
     required this.id,
     required this.seasonId,
-    required this.userId, // NUEVO
+    required this.userId,
     required this.episodeNumber,
     required this.title,
     this.description,
@@ -42,12 +44,49 @@ class Episode {
     return '${uploadedAt.day} ${months[uploadedAt.month - 1]}';
   }
 
-  // Convertir a JSON
+  // Convertir a Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'seasonId': seasonId,
+      'userId': userId,
+      'episodeNumber': episodeNumber,
+      'title': title,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
+      'videoUrl': videoUrl,
+      'durationSeconds': durationSeconds,
+      'uploadedAt': Timestamp.fromDate(uploadedAt),
+      'views': views,
+      'likes': likes,
+      'commentsCount': commentsCount,
+    };
+  }
+
+  // Crear desde Firestore
+  factory Episode.fromFirestore(Map<String, dynamic> data, String id) {
+    return Episode(
+      id: id,
+      seasonId: data['seasonId'] as String,
+      userId: data['userId'] as String,
+      episodeNumber: data['episodeNumber'] as int,
+      title: data['title'] as String,
+      description: data['description'] as String?,
+      thumbnailUrl: data['thumbnailUrl'] as String,
+      videoUrl: data['videoUrl'] as String,
+      durationSeconds: data['durationSeconds'] as int,
+      uploadedAt: (data['uploadedAt'] as Timestamp).toDate(),
+      views: data['views'] as int? ?? 0,
+      likes: data['likes'] as int? ?? 0,
+      commentsCount: data['commentsCount'] as int? ?? 0,
+    );
+  }
+
+  // Convertir a JSON (compatibilidad)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'seasonId': seasonId,
-      'userId': userId, // NUEVO
+      'userId': userId,
       'episodeNumber': episodeNumber,
       'title': title,
       'description': description,
@@ -61,12 +100,12 @@ class Episode {
     };
   }
 
-  // Crear desde JSON
+  // Crear desde JSON (compatibilidad)
   factory Episode.fromJson(Map<String, dynamic> json) {
     return Episode(
       id: json['id'] as String,
       seasonId: json['seasonId'] as String,
-      userId: json['userId'] as String? ?? 'user_1', // NUEVO con fallback
+      userId: json['userId'] as String? ?? 'user_1',
       episodeNumber: json['episodeNumber'] as int,
       title: json['title'] as String,
       description: json['description'] as String?,
@@ -80,11 +119,10 @@ class Episode {
     );
   }
 
-  // Copiar con cambios
   Episode copyWith({
     String? id,
     String? seasonId,
-    String? userId, // NUEVO
+    String? userId,
     int? episodeNumber,
     String? title,
     String? description,
@@ -99,7 +137,7 @@ class Episode {
     return Episode(
       id: id ?? this.id,
       seasonId: seasonId ?? this.seasonId,
-      userId: userId ?? this.userId, // NUEVO
+      userId: userId ?? this.userId,
       episodeNumber: episodeNumber ?? this.episodeNumber,
       title: title ?? this.title,
       description: description ?? this.description,

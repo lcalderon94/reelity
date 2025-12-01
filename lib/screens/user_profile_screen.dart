@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/colors.dart';
 import '../utils/text_styles.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
+import '../services/firebase_auth_service.dart';
 import '../models/user.dart';
 import '../models/season.dart';
 
@@ -19,7 +20,8 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> with SingleTickerProviderStateMixin {
-  final MockDataService _mockService = MockDataService();
+  final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   User? _user;
   Map<String, int> _stats = {};
@@ -47,11 +49,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       _isLoading = true;
     });
 
-    _user = _mockService.getUserById(widget.userId);
+    try {
+      _user = await _firestoreService.getUser(widget.userId);
 
-    if (_user != null) {
-      _stats = _mockService.getUserStats(widget.userId);
-      _userSeasons = _mockService.getSeasonsByUser(widget.userId);
+      if (_user != null) {
+        _stats = {
+          'temporadas': 0,
+          'seguidores': 0,
+          'siguiendo': 0,
+        };
+        _userSeasons = [];
+      }
+    } catch (e) {
+      print('❌ Error cargando perfil: $e');
     }
 
     setState(() {
@@ -86,7 +96,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       );
     }
 
-    final isOwnProfile = _mockService.currentUser?.id == widget.userId;
+    final isOwnProfile = _authService.currentUser?.uid == widget.userId;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -99,117 +109,148 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               backgroundColor: AppColors.background,
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => context.pop(),
               ),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-                  onPressed: () {},
-                ),
+                if (isOwnProfile)
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.white),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Configuración próximamente'),
+                          backgroundColor: AppColors.info,
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
 
-            // Contenido del perfil
+            // Profile header
             SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // Avatar
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(50),
-                      border: Border.all(
-                        color: AppColors.border,
-                        width: 3,
-                      ),
-                      color: AppColors.cardBackground,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(50),
-                      child: Image.network(
-                        _user!.avatarUrl ?? '',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.person,
-                            size: 50,
-                            color: AppColors.textTertiary,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Nombre
-                  Text(
-                    _user!.name,
-                    style: AppTextStyles.h2.copyWith(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Username
-                  Text(
-                    _user!.username ?? '@user',
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.textTertiary,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Bio
-                  if (_user!.bio != null && _user!.bio!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
-                        _user!.bio!,
-                        style: AppTextStyles.body2.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.6,
-                          fontSize: 14,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: AppColors.primary,
+                          width: 3,
                         ),
-                        textAlign: TextAlign.center,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Image.network(
+                          _user!.avatarUrl ?? 'https://i.pravatar.cc/300',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.cardBackground,
+                              child: const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: AppColors.textTertiary,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 24),
+                    // Name
+                    Text(
+                      _user!.name,
+                      style: AppTextStyles.h2,
+                    ),
+                    const SizedBox(height: 4),
 
-                  // Botón Suscribirse / Editar Perfil
-                  if (!isOwnProfile)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: ElevatedButton(
-                        onPressed: _toggleFollow,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                          backgroundColor: _isFollowing
-                              ? AppColors.border
-                              : AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
+                    // Username
+                    Text(
+                      _user!.username ?? '@${_user!.name.toLowerCase().replaceAll(' ', '')}',
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Bio
+                    if (_user!.bio != null && _user!.bio!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          _isFollowing ? 'Suscrito' : 'Suscribirse',
-                          style: AppTextStyles.button.copyWith(fontSize: 15),
+                          _user!.bio!,
+                          style: AppTextStyles.body2.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: OutlinedButton(
+                    const SizedBox(height: 24),
+
+                    // Stats
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatItem('Temporadas', _stats['temporadas'] ?? 0),
+                        _buildStatItem('Seguidores', _stats['seguidores'] ?? 0),
+                        _buildStatItem('Siguiendo', _stats['siguiendo'] ?? 0),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action buttons
+                    if (!isOwnProfile)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _toggleFollow,
+                              icon: Icon(_isFollowing ? Icons.check : Icons.add),
+                              label: Text(_isFollowing ? 'Suscrito' : 'Suscribirse'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isFollowing
+                                    ? AppColors.cardBackground
+                                    : AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Mensajes próximamente'),
+                                  backgroundColor: AppColors.info,
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white30),
+                              padding: const EdgeInsets.all(12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Icon(Icons.message_outlined),
+                          ),
+                        ],
+                      ),
+                    if (isOwnProfile)
+                      ElevatedButton.icon(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -218,62 +259,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                             ),
                           );
                         },
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                          foregroundColor: AppColors.textPrimary,
-                          side: const BorderSide(color: AppColors.border),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Editar perfil'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cardBackground,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 32,
+                          ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text(
-                          'Editar perfil',
-                          style: AppTextStyles.button.copyWith(fontSize: 15),
-                        ),
                       ),
-                    ),
+                  ],
+                ),
+              ),
+            ),
 
-                  const SizedBox(height: 32),
-
-                  // Stats
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatColumn('1.2K', 'Suscriptores'),
-                        Container(width: 1, height: 40, color: AppColors.divider),
-                        _buildStatColumn('${_userSeasons.length}', 'Series'),
-                        Container(width: 1, height: 40, color: AppColors.divider),
-                        _buildStatColumn('${_stats['episodes'] ?? 0}', 'Episodios'),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Tabs
-                  Container(
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: AppColors.divider, width: 2),
-                      ),
-                    ),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: AppColors.textPrimary,
-                      unselectedLabelColor: AppColors.textTertiary,
-                      labelStyle: AppTextStyles.button.copyWith(fontSize: 15),
-                      unselectedLabelStyle: AppTextStyles.button.copyWith(fontSize: 15),
-                      indicatorColor: AppColors.primary,
-                      indicatorWeight: 3,
-                      tabs: const [
-                        Tab(text: 'SERIES'),
-                        Tab(text: 'ACERCA DE'),
-                      ],
-                    ),
-                  ),
-                ],
+            // Tabs
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyTabBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textTertiary,
+                  indicatorColor: AppColors.primary,
+                  tabs: const [
+                    Tab(text: 'Contenido'),
+                    Tab(text: 'Perfil'),
+                  ],
+                ),
               ),
             ),
 
@@ -282,8 +300,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildSeriesTab(),
-                  _buildAboutTab(),
+                  // Contenido tab
+                  _buildContentTab(),
+                  // Perfil tab
+                  _buildProfileTab(),
                 ],
               ),
             ),
@@ -293,186 +313,112 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     );
   }
 
-  Widget _buildStatColumn(String value, String label) {
+  Widget _buildStatItem(String label, int value) {
     return Column(
       children: [
         Text(
-          value,
-          style: AppTextStyles.h4.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-          ),
+          value.toString(),
+          style: AppTextStyles.h3,
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: AppTextStyles.caption.copyWith(
             color: AppColors.textTertiary,
-            fontSize: 12,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSeriesTab() {
+  Widget _buildContentTab() {
     if (_userSeasons.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Text(
-            'Este usuario no tiene series todavía',
-            style: AppTextStyles.body1.copyWith(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.movie_outlined,
+              size: 64,
               color: AppColors.textTertiary,
             ),
-            textAlign: TextAlign.center,
-          ),
+            const SizedBox(height: 16),
+            Text(
+              'Sin temporadas aún',
+              style: AppTextStyles.body1.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
       itemCount: _userSeasons.length,
       itemBuilder: (context, index) {
         final season = _userSeasons[index];
-        final episodes = _mockService.getEpisodesBySeason(season.id);
-
         return GestureDetector(
           onTap: () {
             context.push('/series/${season.id}');
           },
           child: Container(
-            margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: AppColors.cardBackground.withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
+              color: AppColors.cardBackground,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
-                      ),
-                      child: Image.network(
-                        season.imageUrl,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  child: Image.network(
+                    season.imageUrl ?? season.thumbnailUrl ?? 'https://via.placeholder.com/400x300',
+                    width: double.infinity,
+                    height: 180,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
                         width: double.infinity,
                         height: 180,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.6),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          season.isActive ? 'EN CURSO' : 'COMPLETADA',
-                          style: AppTextStyles.caption.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        margin: const EdgeInsets.only(top: 66),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: AppColors.background,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                  ],
+                        color: Colors.grey.shade900,
+                        child: const Icon(Icons.movie, size: 60, color: Colors.grey),
+                      );
+                    },
+                  ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        season.name,
-                        style: AppTextStyles.h4.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          season.name,
+                          style: AppTextStyles.body1.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            '${season.totalDays ~/ 7} Temporadas',
-                            style: AppTextStyles.caption.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textTertiary,
-                            ),
+                        const Spacer(),
+                        Text(
+                          'Día ${season.currentDay}/${season.totalDays}',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textTertiary,
                           ),
-                          const Text(' · ', style: TextStyle(color: AppColors.textTertiary)),
-                          Text(
-                            '${episodes.length} Episodios',
-                            style: AppTextStyles.caption.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                          const Text(' · ', style: TextStyle(color: AppColors.textTertiary)),
-                          Text(
-                            '2024',
-                            style: AppTextStyles.caption.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        season.description ?? 'Sin descripción',
-                        style: AppTextStyles.body2.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                          fontSize: 14,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -483,128 +429,85 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     );
   }
 
-  Widget _buildAboutTab() {
+  Widget _buildProfileTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAboutSection(
-            'Sobre mí',
-            _user!.bio ?? 'Este usuario no ha añadido una biografía todavía.',
-          ),
-          const SizedBox(height: 30),
-          _buildAboutSection(
+          Text(
             'Información',
-            null,
+            style: AppTextStyles.h4,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.email, 'Email', _user!.email),
+          if (_user!.bio != null && _user!.bio!.isNotEmpty)
+            _buildInfoRow(Icons.info, 'Bio', _user!.bio!),
+          const SizedBox(height: 24),
+          Text(
+            'Estadísticas',
+            style: AppTextStyles.h4,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.calendar_today, 'Miembro desde',
+              '${_user!.createdAt.day}/${_user!.createdAt.month}/${_user!.createdAt.year}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.textTertiary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Se unió', _formatDate(_user!.createdAt)),
-                const SizedBox(height: 8),
-                _buildInfoRow('Última actividad', 'Hace 2 horas'),
+                Text(
+                  label,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: AppTextStyles.body2,
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 30),
-          Text(
-            'Logros',
-            style: AppTextStyles.h4.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildAchievement('🏆 ${_stats['views']}+ Vistas'),
-              _buildAchievement('🎬 Creador desde ${_user!.createdAt.year}'),
-              _buildAchievement('🔥 ${_stats['episodes']}+ Episodios'),
-              _buildAchievement('⭐ Top Creator'),
-            ],
-          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildAboutSection(String title, String? text, {Widget? child}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: AppTextStyles.h4.copyWith(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (text != null)
-          Text(
-            text,
-            style: AppTextStyles.body2.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
-              fontSize: 14,
-            ),
-          ),
-        if (child != null) child,
-      ],
-    );
-  }
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
 
-  Widget _buildInfoRow(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: AppTextStyles.body2.copyWith(
-          color: AppColors.textSecondary,
-          fontSize: 14,
-        ),
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          TextSpan(text: value),
-        ],
-      ),
-    );
-  }
+  _StickyTabBarDelegate(this.tabBar);
 
-  Widget _buildAchievement(String text) {
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withOpacity(0.2),
-            const Color(0xFFFF006E).withOpacity(0.2),
-          ],
-        ),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: AppTextStyles.caption.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      color: AppColors.background,
+      child: tabBar,
     );
   }
 
-  String _formatDate(DateTime date) {
-    final months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return '${months[date.month - 1]} ${date.year}';
+  @override
+  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) {
+    return false;
   }
 }

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Group {
   final String id;
   final String name;
@@ -17,7 +19,32 @@ class Group {
     required this.createdAt,
   });
 
-  // Convertir a JSON
+  // Convertir a Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'description': description,
+      'imageUrl': imageUrl,
+      'memberIds': memberIds,
+      'ownerId': ownerId,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  // Crear desde Firestore
+  factory Group.fromFirestore(Map<String, dynamic> data, String id) {
+    return Group(
+      id: id,
+      name: data['name'] as String,
+      description: data['description'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      memberIds: List<String>.from(data['memberIds'] ?? []),
+      ownerId: data['ownerId'] as String,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+    );
+  }
+
+  // Convertir a JSON (compatibilidad)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -30,7 +57,7 @@ class Group {
     };
   }
 
-  // Crear desde JSON
+  // Crear desde JSON (compatibilidad)
   factory Group.fromJson(Map<String, dynamic> json) {
     return Group(
       id: json['id'] as String,
@@ -45,7 +72,6 @@ class Group {
     );
   }
 
-  // Copiar con cambios
   Group copyWith({
     String? id,
     String? name,

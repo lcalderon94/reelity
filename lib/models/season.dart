@@ -1,98 +1,133 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Season {
   final String id;
-  final String groupId;
   final String name;
-  final String? description;
-  final String imageUrl;
+  final String groupId;
   final int currentDay;
   final int totalDays;
-  final bool hasUploadedToday;
   final int streakDays;
-  final DateTime startDate;
-  final DateTime? endDate;
   final bool isActive;
+  final bool hasUploadedToday;
+  final String? thumbnailUrl;
+  final String? imageUrl;
+  final String? description;
+
+  /// Para el mock / stats
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final DateTime? createdAt;
 
   Season({
     required this.id,
-    required this.groupId,
     required this.name,
-    this.description,
-    required this.imageUrl,
+    required this.groupId,
     required this.currentDay,
     required this.totalDays,
+    required this.streakDays,
+    required this.isActive,
     this.hasUploadedToday = false,
-    this.streakDays = 0,
-    required this.startDate,
+    this.thumbnailUrl,
+    this.imageUrl,
+    this.description,
+    this.startDate,
     this.endDate,
-    this.isActive = true,
+    this.createdAt,
   });
 
-  // Convertir a JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'groupId': groupId,
-      'name': name,
-      'description': description,
-      'imageUrl': imageUrl,
-      'currentDay': currentDay,
-      'totalDays': totalDays,
-      'hasUploadedToday': hasUploadedToday,
-      'streakDays': streakDays,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate?.toIso8601String(),
-      'isActive': isActive,
-    };
-  }
+  // ========= JSON (para SharedPreferences / mock) =========
 
-  // Crear desde JSON
   factory Season.fromJson(Map<String, dynamic> json) {
     return Season(
       id: json['id'] as String,
-      groupId: json['groupId'] as String,
       name: json['name'] as String,
+      groupId: json['groupId'] as String,
+      currentDay: (json['currentDay'] ?? 0) as int,
+      totalDays: (json['totalDays'] ?? 0) as int,
+      streakDays: (json['streakDays'] ?? 0) as int,
+      isActive: (json['isActive'] ?? true) as bool,
+      hasUploadedToday: (json['hasUploadedToday'] ?? false) as bool,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      imageUrl: json['imageUrl'] as String?,
       description: json['description'] as String?,
-      imageUrl: json['imageUrl'] as String,
-      currentDay: json['currentDay'] as int,
-      totalDays: json['totalDays'] as int,
-      hasUploadedToday: json['hasUploadedToday'] as bool? ?? false,
-      streakDays: json['streakDays'] as int? ?? 0,
-      startDate: DateTime.parse(json['startDate'] as String),
-      endDate: json['endDate'] != null 
-          ? DateTime.parse(json['endDate'] as String) 
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'] as String)
           : null,
-      isActive: json['isActive'] as bool? ?? true,
+      endDate: json['endDate'] != null
+          ? DateTime.parse(json['endDate'] as String)
+          : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : null,
     );
   }
 
-  // Copiar con cambios
-  Season copyWith({
-    String? id,
-    String? groupId,
-    String? name,
-    String? description,
-    String? imageUrl,
-    int? currentDay,
-    int? totalDays,
-    bool? hasUploadedToday,
-    int? streakDays,
-    DateTime? startDate,
-    DateTime? endDate,
-    bool? isActive,
-  }) {
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'groupId': groupId,
+      'currentDay': currentDay,
+      'totalDays': totalDays,
+      'streakDays': streakDays,
+      'isActive': isActive,
+      'hasUploadedToday': hasUploadedToday,
+      'thumbnailUrl': thumbnailUrl,
+      'imageUrl': imageUrl,
+      'description': description,
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+
+  // ========= Firestore =========
+
+  factory Season.fromFirestore(Map<String, dynamic> data, String id) {
     return Season(
-      id: id ?? this.id,
-      groupId: groupId ?? this.groupId,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      imageUrl: imageUrl ?? this.imageUrl,
-      currentDay: currentDay ?? this.currentDay,
-      totalDays: totalDays ?? this.totalDays,
-      hasUploadedToday: hasUploadedToday ?? this.hasUploadedToday,
-      streakDays: streakDays ?? this.streakDays,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      isActive: isActive ?? this.isActive,
+      id: id,
+      name: data['name'] ?? 'Sin nombre',
+      groupId: data['groupId'] ?? '',
+      currentDay: data['currentDay'] ?? 1,
+      totalDays: data['totalDays'] ?? 30,
+      streakDays: data['streakDays'] ?? 0,
+      isActive: data['isActive'] ?? true,
+      hasUploadedToday: data['hasUploadedToday'] ?? false,
+      thumbnailUrl: data['thumbnailUrl'],
+      imageUrl: data['imageUrl'],
+      description: data['description'],
+      startDate: _timestampOrStringToDate(data['startDate']),
+      endDate: _timestampOrStringToDate(data['endDate']),
+      createdAt: _timestampOrStringToDate(data['createdAt']),
     );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'groupId': groupId,
+      'currentDay': currentDay,
+      'totalDays': totalDays,
+      'streakDays': streakDays,
+      'isActive': isActive,
+      'hasUploadedToday': hasUploadedToday,
+      'thumbnailUrl': thumbnailUrl,
+      'imageUrl': imageUrl,
+      'description': description,
+      'startDate':
+      startDate != null ? Timestamp.fromDate(startDate!) : null,
+      'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
+      'createdAt':
+      createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+    };
+  }
+
+  // ========= Helper =========
+
+  static DateTime? _timestampOrStringToDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 }

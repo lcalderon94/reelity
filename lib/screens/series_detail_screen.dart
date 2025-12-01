@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/colors.dart';
 import '../utils/text_styles.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import '../models/season.dart';
 import '../models/group.dart';
 import '../models/episode.dart';
@@ -20,7 +20,7 @@ class SeriesDetailScreen extends StatefulWidget {
 }
 
 class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
-  final MockDataService _mockService = MockDataService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   Season? _season;
   Group? _group;
@@ -38,11 +38,19 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
       _isLoading = true;
     });
 
-    _season = _mockService.getSeasonById(widget.seasonId);
+    try {
+      // Cargar temporada
+      _season = await _firestoreService.getSeasonById(widget.seasonId);
 
-    if (_season != null) {
-      _group = _mockService.getGroupById(_season!.groupId);
-      _episodes = _mockService.getEpisodesBySeason(widget.seasonId);
+      if (_season != null) {
+        // Cargar grupo
+        _group = await _firestoreService.getGroupById(_season!.groupId);
+
+        // Cargar episodios
+        _episodes = await _firestoreService.getEpisodesBySeason(widget.seasonId);
+      }
+    } catch (e) {
+      print('❌ Error cargando datos: $e');
     }
 
     setState(() {
@@ -89,8 +97,18 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                 children: [
                   // Imagen
                   Image.network(
-                    _season!.imageUrl,
+                    _season!.imageUrl ?? 'https://via.placeholder.com/800x600',
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.cardBackground,
+                        child: const Icon(
+                          Icons.movie,
+                          size: 100,
+                          color: AppColors.textTertiary,
+                        ),
+                      );
+                    },
                   ),
                   // Gradient overlay
                   Positioned(
@@ -115,7 +133,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                   Center(
                     child: GestureDetector(
                       onTap: () {
-                        // Reproducir primer episodio
                         if (_episodes.isNotEmpty) {
                           context.push('/video-player/${_episodes.first.id}');
                         }
@@ -219,10 +236,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                           label: const Text('Descargar'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: BorderSide(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 2,
-                            ),
+                            side: const BorderSide(color: Colors.white54),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
@@ -232,25 +246,23 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25),
 
-                  // Creator section
+                  // Creator info
                   if (_group != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: AppColors.border,
-                            width: 1,
-                          ),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.textTertiary.withOpacity(0.2),
+                          width: 1,
                         ),
                       ),
                       child: Row(
                         children: [
                           GestureDetector(
                             onTap: () {
-                              // Navegar al perfil del dueño de la serie
                               if (_group != null && _group!.ownerId.isNotEmpty) {
                                 context.push('/user-profile/${_group!.ownerId}');
                               }
@@ -377,6 +389,13 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     child: Image.network(
                       episode.thumbnailUrl,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.play_circle_outline,
+                          size: 40,
+                          color: AppColors.textTertiary,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -430,10 +449,14 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${episode.episodeNumber}. ${episode.title}',
-                        style: AppTextStyles.body1.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          '${episode.episodeNumber}. ${episode.title}',
+                          style: AppTextStyles.body1.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(
