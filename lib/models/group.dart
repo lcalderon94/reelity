@@ -7,6 +7,7 @@ class Group {
   final String? imageUrl;
   final List<String> memberIds;
   final String ownerId;
+  final List<String> tags; // ✅ NUEVO
   final DateTime createdAt;
 
   Group({
@@ -16,6 +17,7 @@ class Group {
     this.imageUrl,
     required this.memberIds,
     required this.ownerId,
+    required this.tags, // ✅ NUEVO
     required this.createdAt,
   });
 
@@ -27,6 +29,7 @@ class Group {
       'imageUrl': imageUrl,
       'memberIds': memberIds,
       'ownerId': ownerId,
+      'tags': tags, // ✅ NUEVO
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -40,6 +43,7 @@ class Group {
       imageUrl: data['imageUrl'] as String?,
       memberIds: List<String>.from(data['memberIds'] ?? []),
       ownerId: data['ownerId'] as String,
+      tags: List<String>.from(data['tags'] ?? []), // ✅ NUEVO
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -53,6 +57,7 @@ class Group {
       'imageUrl': imageUrl,
       'memberIds': memberIds,
       'ownerId': ownerId,
+      'tags': tags, // ✅ NUEVO
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -68,6 +73,9 @@ class Group {
           .map((e) => e as String)
           .toList(),
       ownerId: json['ownerId'] as String,
+      tags: (json['tags'] as List<dynamic>?) // ✅ NUEVO
+          ?.map((e) => e as String)
+          .toList() ?? [],
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -79,6 +87,7 @@ class Group {
     String? imageUrl,
     List<String>? memberIds,
     String? ownerId,
+    List<String>? tags, // ✅ NUEVO
     DateTime? createdAt,
   }) {
     return Group(
@@ -88,7 +97,8 @@ class Group {
       imageUrl: imageUrl ?? this.imageUrl,
       memberIds: memberIds ?? this.memberIds,
       ownerId: ownerId ?? this.ownerId,
+      tags: tags ?? this.tags, // ✅ NUEVO
       createdAt: createdAt ?? this.createdAt,
     );
   }
-}
+} 
