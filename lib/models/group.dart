@@ -101,4 +101,4 @@ class Group {
       createdAt: createdAt ?? this.createdAt,
     );
   }
-} 
+}

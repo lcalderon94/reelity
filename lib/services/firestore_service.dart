@@ -9,6 +9,57 @@ import '../models/subscription.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // ==================== ONBOARDING / TAGS ====================
+
+  /// Busca creadores que tengan tags que coincidan con los intereses del usuario
+  Future<List<models.User>> getCreatorsByTags(List<String> interestTags) async {
+    try {
+      print('🔍 Buscando creadores con tags: $interestTags');
+
+      final usersSnapshot = await _firestore
+          .collection('users')
+          .where('creatorTags', arrayContainsAny: interestTags)
+          .limit(20)
+          .get();
+
+      final creators = usersSnapshot.docs
+          .map((doc) => models.User.fromFirestore(doc.data(), doc.id))
+          .toList();
+
+      print('✅ Encontrados ${creators.length} creadores');
+      return creators;
+    } catch (e) {
+      print('❌ Error buscando creadores: $e');
+      return [];
+    }
+  }
+
+  /// Actualiza los interestTags del usuario
+  Future<void> updateUserInterests(String userId, List<String> interestTags) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'interestTags': interestTags,
+      });
+      print('✅ Intereses actualizados para usuario $userId');
+    } catch (e) {
+      print('❌ Error actualizando intereses: $e');
+      rethrow;
+    }
+  }
+
+  /// Actualiza los creatorTags del usuario
+  Future<void> updateCreatorTags(String userId, List<String> creatorTags) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'creatorTags': creatorTags,
+      });
+      print('✅ Tags de creador actualizados para usuario $userId');
+    } catch (e) {
+      print('❌ Error actualizando tags de creador: $e');
+      rethrow;
+    }
+  }
+
   // ==================== FEED / HOME ====================
 
   /// Obtiene el feed para el usuario: series de creadores a los que está suscrito

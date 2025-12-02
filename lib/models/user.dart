@@ -8,6 +8,8 @@ class User {
   final String? username;
   final String? avatarUrl;
   final String? bio;
+  final List<String> interestTags; // ✅ Tags privados (qué le gusta VER)
+  final List<String> creatorTags; // ✅ Tags públicos (qué PRODUCE como creador)
   final DateTime createdAt;
 
   User({
@@ -18,6 +20,8 @@ class User {
     this.username,
     this.avatarUrl,
     this.bio,
+    this.interestTags = const [],
+    this.creatorTags = const [],
     required this.createdAt,
   });
 
@@ -29,6 +33,8 @@ class User {
       'username': username,
       'avatarUrl': avatarUrl,
       'bio': bio,
+      'interestTags': interestTags,
+      'creatorTags': creatorTags,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -43,6 +49,8 @@ class User {
       username: data['username'] as String?,
       avatarUrl: data['avatarUrl'] as String?,
       bio: data['bio'] as String?,
+      interestTags: List<String>.from(data['interestTags'] ?? []),
+      creatorTags: List<String>.from(data['creatorTags'] ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -57,6 +65,8 @@ class User {
       'username': username,
       'avatarUrl': avatarUrl,
       'bio': bio,
+      'interestTags': interestTags,
+      'creatorTags': creatorTags,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -71,6 +81,12 @@ class User {
       username: json['username'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
+      interestTags: (json['interestTags'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ?? [],
+      creatorTags: (json['creatorTags'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ?? [],
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -84,6 +100,8 @@ class User {
     String? username,
     String? avatarUrl,
     String? bio,
+    List<String>? interestTags,
+    List<String>? creatorTags,
     DateTime? createdAt,
   }) {
     return User(
@@ -94,6 +112,8 @@ class User {
       username: username ?? this.username,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       bio: bio ?? this.bio,
+      interestTags: interestTags ?? this.interestTags,
+      creatorTags: creatorTags ?? this.creatorTags,
       createdAt: createdAt ?? this.createdAt,
     );
   }
