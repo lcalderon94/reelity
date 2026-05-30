@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../utils/colors.dart';
 import '../utils/text_styles.dart';
 import '../services/firestore_service.dart';
+import '../services/firebase_auth_service.dart';
 import '../models/season.dart';
 import '../models/group.dart';
 import '../models/episode.dart';
@@ -21,11 +22,16 @@ class SeriesDetailScreen extends StatefulWidget {
 
 class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   Season? _season;
   Group? _group;
   List<Episode> _episodes = [];
   bool _isLoading = true;
+  bool _isFollowing = false;
+  bool _isFollowLoading = false;
+  bool _isSaved = false;
+  bool _isSaveLoading = false;
 
   @override
   void initState() {
@@ -34,28 +40,122 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Cargar temporada
       _season = await _firestoreService.getSeasonById(widget.seasonId);
 
       if (_season != null) {
-        // Cargar grupo
-        _group = await _firestoreService.getGroupById(_season!.groupId);
+        final results = await Future.wait([
+          _firestoreService.getGroupById(_season!.groupId),
+          _firestoreService.getEpisodesBySeason(widget.seasonId),
+        ]);
+        _group = results[0] as Group?;
+        _episodes = results[1] as List<Episode>;
 
-        // Cargar episodios
-        _episodes = await _firestoreService.getEpisodesBySeason(widget.seasonId);
+        // Comprobar suscripción y si la serie está guardada
+        final currentUserId = _authService.currentUser?.uid;
+        if (currentUserId != null && _group != null) {
+          final checks = await Future.wait([
+            _firestoreService.isSubscribed(
+              userId: currentUserId,
+              creatorId: _group!.ownerId,
+            ),
+            _firestoreService.isSeasonSaved(
+              userId: currentUserId,
+              seasonId: widget.seasonId,
+            ),
+          ]);
+          _isFollowing = checks[0];
+          _isSaved = checks[1];
+        }
       }
     } catch (e) {
       print('❌ Error cargando datos: $e');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _toggleFollow() async {
+    if (_group == null || _isFollowLoading) return;
+    final currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    setState(() => _isFollowLoading = true);
+    try {
+      if (_isFollowing) {
+        await _firestoreService.unsubscribeFromCreator(
+          userId: currentUserId,
+          creatorId: _group!.ownerId,
+        );
+      } else {
+        await _firestoreService.subscribeToCreator(
+          userId: currentUserId,
+          creatorId: _group!.ownerId,
+        );
+      }
+      setState(() => _isFollowing = !_isFollowing);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isFollowing ? '¡Suscrito a ${_group!.name}!' : 'Suscripción cancelada',
+            ),
+            backgroundColor: _isFollowing ? AppColors.success : AppColors.info,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error al cambiar suscripción: $e');
+    }
+    if (mounted) setState(() => _isFollowLoading = false);
+  }
+
+  Future<void> _toggleSave() async {
+    final currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null || _isSaveLoading) return;
+
+    setState(() => _isSaveLoading = true);
+    try {
+      if (_isSaved) {
+        await _firestoreService.unsaveSeason(
+          userId: currentUserId,
+          seasonId: widget.seasonId,
+        );
+      } else {
+        await _firestoreService.saveSeason(
+          userId: currentUserId,
+          seasonId: widget.seasonId,
+        );
+      }
+      setState(() => _isSaved = !_isSaved);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isSaved ? 'Serie guardada en tu perfil' : 'Serie eliminada de guardados',
+            ),
+            backgroundColor: _isSaved ? AppColors.success : AppColors.info,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+    if (mounted) setState(() => _isSaveLoading = false);
   }
 
   @override
@@ -224,19 +324,30 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Descargar próximamente'),
-                                backgroundColor: AppColors.info,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.download_outlined),
-                          label: const Text('Descargar'),
+                          onPressed: _isSaveLoading ? null : _toggleSave,
+                          icon: _isSaveLoading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Icon(
+                                  _isSaved
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_border,
+                                ),
+                          label: Text(_isSaved ? 'Guardada' : 'Guardar'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white54),
+                            foregroundColor:
+                                _isSaved ? AppColors.primary : Colors.white,
+                            side: BorderSide(
+                              color: _isSaved
+                                  ? AppColors.primary
+                                  : Colors.white54,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
@@ -310,16 +421,11 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                             ),
                           ),
                           ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Suscrito!'),
-                                  backgroundColor: AppColors.success,
-                                ),
-                              );
-                            },
+                            onPressed: _isFollowLoading ? null : _toggleFollow,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: _isFollowing
+                                  ? AppColors.cardBackground
+                                  : AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -329,7 +435,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            child: const Text('Suscribirse'),
+                            child: _isFollowLoading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(_isFollowing ? 'Suscrito ✓' : 'Suscribirse'),
                           ),
                         ],
                       ),

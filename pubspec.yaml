@@ -14,18 +14,24 @@ dependencies:
   go_router: ^13.0.0
 
   # UI
-  google_fonts: ^6.1.0
+  google_fonts: ^8.1.0
 
   # Almacenamiento local
   shared_preferences: ^2.2.2
 
-  # WebView para reproducir YouTube
-  flutter_inappwebview: ^6.0.0
 
   # 🔥 FIREBASE
   firebase_core: ^3.8.1
   firebase_auth: ^5.3.4
   cloud_firestore: ^5.6.0
+  firebase_storage: ^12.3.3
+
+  # 📷 CÁMARA
+  image_picker: ^1.1.2
+
+  # 🎬 VIDEO
+  video_player: ^2.9.2
+  chewie: ^1.8.5
 
 dev_dependencies:
   flutter_test:

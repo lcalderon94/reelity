@@ -55,8 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
-        // Ir al onboarding después de registrarse
-        context.go('/onboarding');
+        context.go('/onboarding-tags');
       }
     } catch (e) {
       setState(() {

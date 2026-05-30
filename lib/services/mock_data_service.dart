@@ -112,6 +112,7 @@ class MockDataService {
         imageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800',
         memberIds: ['user_1'],
         ownerId: 'user_1',
+        tags: [],
         createdAt: DateTime.now().subtract(const Duration(days: 180)),
       ),
       Group(
@@ -121,6 +122,7 @@ class MockDataService {
         imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
         memberIds: ['user_1', 'user_2'],
         ownerId: 'user_2',
+        tags: [],
         createdAt: DateTime.now().subtract(const Duration(days: 30)),
       ),
       Group(
@@ -130,6 +132,7 @@ class MockDataService {
         imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800',
         memberIds: ['user_1', 'user_3'],
         ownerId: 'user_3',
+        tags: [],
         createdAt: DateTime.now().subtract(const Duration(days: 60)),
       ),
       Group(
@@ -139,6 +142,7 @@ class MockDataService {
         imageUrl: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800',
         memberIds: ['user_1', 'user_4'],
         ownerId: 'user_4',
+        tags: [],
         createdAt: DateTime.now().subtract(const Duration(days: 90)),
       ),
       Group(
@@ -148,6 +152,7 @@ class MockDataService {
         imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
         memberIds: ['user_1', 'user_5'],
         ownerId: 'user_5',
+        tags: [],
         createdAt: DateTime.now().subtract(const Duration(days: 180)),
       ),
     ];

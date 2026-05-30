@@ -10,10 +10,12 @@ import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/series_detail_screen.dart';
 import 'screens/video_player_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'screens/onboarding_tags_screen.dart';
+import 'screens/onboarding_creators_screen.dart';
+import 'screens/edit_profile_screen.dart';
 import 'widgets/main_scaffold.dart';
 
 void main() async {
@@ -70,7 +72,7 @@ class ReelityApp extends StatelessWidget {
         titleTextStyle: AppTextStyles.h4,
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -141,9 +143,22 @@ final _router = GoRouter(
       builder: (context, state) => const RegisterScreen(),
     ),
     GoRoute(
+      path: '/onboarding-tags',
+      name: 'onboarding-tags',
+      builder: (context, state) => const OnboardingTagsScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding-creators',
+      name: 'onboarding-creators',
+      builder: (context, state) {
+        final tags = (state.extra as List<String>?) ?? [];
+        return OnboardingCreatorsScreen(selectedTags: tags);
+      },
+    ),
+    GoRoute(
       path: '/home',
       name: 'home',
-      builder: (context, state) => const MainScaffold(child: HomeScreen()),
+      builder: (context, state) => const MainScaffold(),
     ),
     GoRoute(
       path: '/series/:seasonId',
@@ -168,6 +183,11 @@ final _router = GoRouter(
         final userId = state.pathParameters['userId']!;
         return UserProfileScreen(userId: userId);
       },
+    ),
+    GoRoute(
+      path: '/edit-profile',
+      name: 'edit-profile',
+      builder: (context, state) => const EditProfileScreen(),
     ),
   ],
 );

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../utils/colors.dart';
-import '../services/mock_data_service.dart';
+import '../utils/text_styles.dart';
+import '../services/firebase_auth_service.dart';
+import '../screens/home_screen.dart';
+import '../screens/explore_screen.dart';
+import '../screens/user_profile_screen.dart';
+import '../screens/create_episode_screen.dart';
 
 class MainScaffold extends StatefulWidget {
-  final Widget child;
-
-  const MainScaffold({
-    super.key,
-    required this.child,
-  });
+  const MainScaffold({super.key});
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
@@ -17,57 +16,41 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
-  final MockDataService _mockService = MockDataService();
-
-  void _onNavBarTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0: // Home
-        context.go('/home');
-        break;
-      case 1: // Búsqueda
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Búsqueda próximamente'),
-            backgroundColor: AppColors.info,
-          ),
-        );
-        break;
-      case 2: // Crear
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Crear próximamente'),
-            backgroundColor: AppColors.info,
-          ),
-        );
-        break;
-      case 3: // Notificaciones
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notificaciones próximamente'),
-            backgroundColor: AppColors.info,
-          ),
-        );
-        break;
-      case 4: // Perfil
-        final currentUser = _mockService.currentUser;
-        if (currentUser != null) {
-          context.push('/user-profile/${currentUser.id}');
-        }
-        break;
-    }
-  }
+  int _profileKey = 0; // cambia al navegar al perfil, forzando recarga
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   @override
   Widget build(BuildContext context) {
+    final userId = _authService.currentUser?.uid;
+
+    final List<Widget> tabs = [
+      const HomeScreen(),
+      const ExploreScreen(),
+      const CreateEpisodeScreen(),
+      _NotificationsTab(),
+      if (userId != null)
+        UserProfileScreen(
+          key: ValueKey(_profileKey),
+          userId: userId,
+          isEmbedded: true,
+        )
+      else
+        const _LoadingTab(),
+    ];
+
     return Scaffold(
-      body: widget.child,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: tabs,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onNavBarTap,
+        onTap: (index) {
+          setState(() {
+            if (index == 4) _profileKey++; // recarga el perfil al entrar
+            _selectedIndex = index;
+          });
+        },
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.backgroundLight,
         selectedItemColor: AppColors.primary,
@@ -102,6 +85,53 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NotificationsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        title: Text('Notificaciones', style: AppTextStyles.h4),
+        elevation: 0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.notifications_outlined,
+                size: 72, color: AppColors.textTertiary),
+            const SizedBox(height: 20),
+            Text('Sin notificaciones', style: AppTextStyles.body1),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48),
+              child: Text(
+                'Aquí verás actualizaciones de los creadores que sigues',
+                style: AppTextStyles.body2,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingTab extends StatelessWidget {
+  const _LoadingTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary)),
     );
   }
 }

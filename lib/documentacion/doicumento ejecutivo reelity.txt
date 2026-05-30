@@ -1,0 +1,491 @@
+1. Resumen ejecutivo
+
+Nombre del producto: REELITY
+Tipo de producto: App móvil social (Flutter, de momento solo front)
+Estado: Fase 0 – Validación de producto. Sin monetización.
+
+Qué es REELITY:
+
+REELITY es una app donde grupos pequeños de amigos crean su propio mini “reality show” privado organizado en temporadas.
+Cada día hay un reto en vídeo corto, todos suben su clip, reaccionan y mantienen un streak de grupo.
+
+No hay feeds infinitos de desconocidos ni postureo masivo:
+el foco está en tu círculo cercano, en vuestro día a día, convertido en un reality en formato short video.
+
+2. Objetivos del producto
+2.1. Objetivo principal
+
+Conseguir que un usuario:
+
+Cree o se una a un grupo.
+
+Juegue al menos una temporada completa (7–30 días).
+
+Participe casi a diario subiendo vídeos y viendo los de sus amigos.
+
+2.2. Objetivos secundarios
+
+Fomentar la viralidad orgánica:
+
+Las temporadas deben invitar a que la gente:
+
+comparta el concepto con sus amigos,
+
+invite gente nueva a sus grupos.
+
+Validar que:
+
+el formato “temporada + retos diarios + vídeo corto + grupo pequeño”
+genera hábitos de uso (no solo curiosidad puntual).
+
+2.3. Qué NO es objetivo ahora
+
+No es objetivo en esta fase:
+
+Monetizar.
+
+Ser masivo tipo TikTok/Instagram a nivel global.
+
+Tener un motor de recomendación superfino.
+
+3. Público objetivo
+3.1. Segmentos principales
+
+Amigos de 18–35 años
+
+Grupos de gym, colegas de fiesta, compis de trabajo, universidad.
+
+Buscan algo distinto a los grupos muertos de WhatsApp.
+
+Pequeñas comunidades
+
+Equipos de deporte, clases, grupos de viaje, residencias, etc.
+
+Quieren “documentar” una etapa (viaje, curso, reto) en formato vídeo corto.
+
+Usuarios intensivos de redes que están quemados del postureo
+
+Gente que usa IG/TikTok pero:
+
+quiere algo más íntimo,
+
+le da pereza subir cosas “para todo el mundo”.
+
+3.2. Necesidades que cubre
+
+Conectar con amigos de manera activa, no solo “ver stories”.
+
+Tener un hábito social diario divertido (reto, vídeo, risas).
+
+Crear un registro en vídeo de épocas concretas (“Temporada Erasmus”, “Temporada Gym Enero”, etc.).
+
+Evitar el ruido y la ansiedad de redes masivas:
+
+Aquí no hay “me siguen 10.000”, hay “somos 6–10 y nos vemos cada día”.
+
+4. Propuesta de valor
+4.1. En una frase
+
+“REELITY convierte tu grupo de amigos en un reality show privado por temporadas, con retos diarios en vídeo corto.”
+
+4.2. Diferenciación frente a otras plataformas
+
+WhatsApp / Telegram
+
+Chats infinitos, caos, texto, memes desordenados.
+
+REELITY ofrece estructura: temporadas, días, retos, resúmenes.
+
+Instagram / TikTok
+
+Masivo, público, búsqueda de validación externa.
+
+REELITY es privado, centrado en tu círculo pequeño.
+
+BeReal / similares
+
+1 foto al día, poco flexible.
+
+REELITY:
+
+usa vídeo corto,
+
+tiene retos configurables,
+
+y se organiza en temporadas, no solo días sueltos.
+
+5. Funcionalidad principal (visión funcional, no técnica)
+5.1. Elementos clave
+
+Usuario
+
+Se registra / inicia sesión.
+
+Elige nombre, username, foto, bio.
+
+Grupo (comunidad)
+
+Conjunto de amigos/comunidad.
+
+Es el “cast” del reality.
+
+Temporada
+
+Pertenece a un grupo.
+
+Tiene nombre, duración, temática.
+
+Está dividida en días.
+
+Día de temporada
+
+Tiene un reto/prompt.
+
+Los miembros suben su clip del día.
+
+Hay reacciones y comentarios.
+
+Reto / Prompt
+
+Una frase tipo:
+
+“Enséñanos dónde estás trabajando hoy”
+
+“Graba tu momento más absurdo del día en 15s”
+
+Define el contenido del día.
+
+Vídeo corto
+
+Clip de 10–20 segundos.
+
+Es la unidad principal de contenido.
+
+5.2. Flujo diario básico (loop)
+
+REELITY lanza un reto del día a la temporada.
+
+El usuario recibe la idea del reto al abrir la app.
+
+Ve qué han subido sus amigos.
+
+Graba su clip (o lo coge de galería).
+
+Lo sube al día correspondiente.
+
+Reacciona y comenta los clips de los demás.
+
+Ve el streak personal y del grupo.
+
+Si este ciclo se repite, la app cumple su misión.
+
+6. Casos de uso principales
+6.1. Caso de uso 1: Crear un grupo y una temporada
+
+Actor: Usuario nuevo o existente.
+
+Objetivo: Crear el espacio donde ocurrirá el “reality”.
+
+Flujo:
+
+El usuario va a “Grupos” → “Crear grupo”.
+
+Pone nombre (“Gym Hortaleza”), imagen, descripción.
+
+Guarda.
+
+Desde el grupo, crea “Temporada”:
+
+“Gym Enero 2026”.
+
+Duración: 14 días.
+
+Tema: Gym / Fitness.
+
+Invita a sus amigos:
+
+Por link compartible
+
+O buscándolos por username.
+
+Resultado:
+
+Grupo creado.
+
+Temporada programada o ya en marcha.
+
+Amigos invitados.
+
+6.2. Caso de uso 2: Participar en un reto diario
+
+Actor: Miembro de una temporada.
+
+Objetivo: Cumplir con el hábito diario y participar.
+
+Flujo:
+
+Abre la app → Home de temporadas.
+
+Entra en “Gym Enero 2026”.
+
+Ve el reto de hoy:
+“Graba tu cara antes y después de entrenar”.
+
+Toca “Grabar clip”.
+
+Graba vídeo (10–15s), revisa, sube.
+
+Ve la lista de vídeos del día con sus amigos.
+
+Reacciona con emojis y deja algún comentario.
+
+Resultado:
+
+El día registra su participación.
+
+El grupo mantiene o rompe su streak.
+
+6.3. Caso de uso 3: Ver el progreso de la temporada
+
+Actor: Miembro de la temporada.
+
+Objetivo: Ver cómo va el reality.
+
+Flujo:
+
+Entra en la temporada.
+
+Abre la pestaña “Timeline”.
+
+Ve los días completados (todos participaron), los parciales y los vacíos.
+
+Entra en días antiguos para ver clips pasados.
+
+Va a la pestaña “Resumen”:
+
+% de participación.
+
+Quién ha subido más.
+
+Días más activos.
+
+Resultado:
+
+El usuario tiene una sensación clara de “temporada” y progreso.
+
+6.4. Caso de uso 4: Buscar un usuario o comunidad
+
+Actor: Usuario interesado en conectar o descubrir.
+
+Objetivo: Encontrar personas o grupos específicos.
+
+Flujo:
+
+Va a “Buscar”.
+
+Escribe un nombre / username / tema.
+
+Filtra por “Personas” o “Comunidades”.
+
+Selecciona un usuario:
+
+Ve su perfil público.
+
+Selecciona un grupo:
+
+Ve su detalle.
+
+Si es comunidad abierta, puede pedir unirse.
+
+Resultado:
+
+El usuario descubre nuevos contactos o comunidades afines.
+
+6.5. Caso de uso 5: Ver mi perfil y mi actividad
+
+Actor: Usuario.
+
+Objetivo: Ver su “huella” en REELITY.
+
+Flujo:
+
+Va a “Perfil”.
+
+Ve:
+
+Días seguidos participando.
+
+Temporadas jugadas.
+
+Reacciones totales.
+
+Opcionalmente, edita:
+
+Nombre, username, bio, avatar.
+
+Resultado:
+
+El usuario entiende su nivel de implicación y “rol” en REELITY.
+
+7. Alcance funcional de la primera versión (a nivel negocio)
+7.1. Módulos incluidos
+
+Registro / Login básico
+
+Creación de cuenta.
+
+Inicio de sesión.
+
+Gestión de grupos
+
+Crear grupo.
+
+Ver mis grupos.
+
+Ver detalle de grupo.
+
+Invitar usuarios (por ahora, conceptualmente).
+
+Gestión de temporadas
+
+Crear temporada (nombre, duración, grupo, tema).
+
+Ver temporadas activas y pasadas.
+
+Ver detalle de temporada.
+
+Reto diario
+
+Ver reto del día.
+
+Tener una lista fija de prompts iniciales (negocio: packs muy básicos).
+
+Vídeo corto
+
+Grabar / subir clip diario.
+
+Ver clips del día en la temporada.
+
+Ver clips de días pasados.
+
+Interacción
+
+Reacciones a clips (emojis).
+
+Comentarios.
+
+Búsqueda básica
+
+Buscar usuarios por username.
+
+Buscar grupos por nombre.
+
+Perfil usuario
+
+Ver perfil propio y editar datos básicos.
+
+Ver perfil de otros usuarios.
+
+Ajustes básicos
+
+Notificaciones simples (in-app o futuras push).
+
+Preferencias de privacidad básicas.
+
+7.2. Lo que se deja fuera en esta fase (pero está pensado)
+
+Monetización (suscripciones, compras, etc.).
+
+Recomendaciones avanzadas tipo Netflix (por gustos / localización).
+
+Panel de administración/mderación externo.
+
+Temporadas “públicas globales” grandes (por ahora, foco en grupos pequeños).
+
+8. Estrategia de crecimiento (visión)
+
+Aunque no se implementa todo desde el día 1, a nivel negocio es clave:
+
+8.1. Crecimiento orgánico dentro de la app
+
+Cada temporada invita a:
+
+añadir amigos,
+
+reactivar gente inactiva (streak del grupo),
+
+crear nuevas temporadas (Festividades, Verano, etc.).
+
+8.2. Crecimiento externo
+
+Compartir “teasers” o capturas de resúmenes (cuando existan) en:
+
+WhatsApp,
+
+Instagram,
+
+TikTok,
+
+para atraer nuevos usuarios a REELITY.
+
+9. Métricas de éxito (negocio / producto)
+
+Para saber si REELITY “funciona” como concepto:
+
+9.1. Engagement
+
+DAU / MAU (usuarios activos diarios/mensuales).
+
+% de usuarios que suben vídeo al menos X días seguidos en una temporada.
+
+Tamaño medio de grupo (ideal: 4–10).
+
+9.2. Retención
+
+D1, D7, D30:
+% de usuarios que vuelven al cabo de 1, 7 y 30 días.
+
+% de usuarios que completan al menos una temporada.
+
+9.3. Viralidad
+
+Media de invitaciones enviadas por usuario activo.
+
+Ratio de aceptación de invitaciones.
+
+(En esta fase, estas métricas se conceptualizan; se implementarán cuando exista backend.)
+
+10. Principios de producto
+
+Para guiar cualquier decisión de diseño o funcionalidad:
+
+Primero amigos, luego el resto del mundo.
+La experiencia debe funcionar con 1 grupo y pocos amigos.
+Si eso no engancha, no hay producto.
+
+Sencillez extrema en el flujo diario.
+El usuario debe entender en segundos:
+
+cuál es el reto de hoy,
+
+quién ha subido ya,
+
+qué tiene que hacer él.
+
+Intimidad sobre exhibición.
+Todo el diseño prioriza:
+
+grupos pequeños,
+
+privacidad,
+
+comodidad para ser “auténtico”.
+
+Temporadas con principio y fin.
+Esto diferencia a REELITY de un simple chat o feed infinito:
+
+hay un arco,
+
+un capítulo final,
+
+un recuerdo de esa época.

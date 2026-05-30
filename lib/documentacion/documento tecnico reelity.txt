@@ -1,0 +1,1100 @@
+1. Visión general de REELITY (producto)
+
+REELITY es una app móvil donde:
+
+Un grupo pequeño de amigos crea su propio “reality show privado”.
+
+Cada reality se organiza en temporadas (7, 14, 30 días…).
+
+Cada día hay un reto en vídeo corto (10–20s) que todos pueden grabar.
+
+Ves los clips de tus amigos, reaccionas y mantienes un streak de grupo.
+
+Puedes buscar personas y comunidades para unirte.
+
+Filosofía
+
+Todo es gratis al inicio (modo “La red social”).
+
+Objetivo principal: uso diario y adicción sana:
+
+La gente entra todos los días a ver qué han subido sus amigos
+
+y a subir su clip del reto del día.
+
+Monetización = 100% futura. No se muestra nada de precios ni “Plus” ahora.
+
+2. Modelo de negocio (fase inicial)
+Estado actual (fase 0)
+
+0 monetización visible.
+
+Todo el foco en:
+
+Alta fácil
+
+Crear grupo/temporada rápido
+
+Subir vídeos
+
+Invitar amigos
+
+Uso diario
+
+Futuro (solo para orientar, NO implementar todavía)
+
+La arquitectura de Flutter debe permitir:
+
+Límites configurables (nº de grupos, duración de temporada, etc.).
+
+Flags de funcionalidades (se pueden usar luego para “planes”).
+
+Pero no se construyen pantallas de pago en esta fase.
+
+3. Arquitectura técnica (solo Flutter, sin Spring Boot)
+3.1. Stack
+
+Frontend:
+
+Flutter (Dart)
+
+Target: Android e iOS
+
+Estado:
+
+Puedes usar Riverpod, Bloc o Provider.
+
+Recomendación para este tipo de app → Riverpod (flexible, moderno).
+
+Datos (en esta fase):
+
+Datos fake / mock en memoria (listas en Dart).
+
+Posible uso de shared_preferences para simular login persistente y alguna cosa local (usuario actual, idioma, etc.).
+
+Vídeos grabados y guardados en local con path_provider + camera/image_picker.
+
+3.2. Idea clave: “fake backend”
+
+Definimos repositorios abstractos, por ejemplo:
+
+abstract class AuthRepository {
+  Future<User?> login(String email, String password);
+  Future<User> register(String name, String email, String password);
+  Future<void> logout();
+}
+
+abstract class SeasonsRepository {
+  Future<List<Season>> getSeasonsForUser(String userId);
+  Future<SeasonDetail> getSeasonDetail(String seasonId);
+  Future<void> uploadVideo({
+    required String seasonId,
+    required DateTime day,
+    required String filePath,
+  });
+}
+
+
+En esta fase, implementamos solo las versiones fake:
+
+class FakeAuthRepository implements AuthRepository { ... }
+class FakeSeasonsRepository implements SeasonsRepository { ... }
+
+
+Más adelante, cuando tengas Spring Boot, creas:
+
+class ApiAuthRepository implements AuthRepository { ... }
+class ApiSeasonsRepository implements SeasonsRepository { ... }
+
+
+Y cambias la inyección de dependencias. La UI no cambia.
+
+4. Modelo de dominio (conceptual)
+
+Solo para que el Flutter se estructure bien desde el inicio:
+
+User
+
+id
+
+name
+
+username
+
+avatarUrl?
+
+bio?
+
+Group (comunidad)
+
+id
+
+name
+
+description?
+
+imageUrl?
+
+members: List<UserRef>
+
+visibility: public/private
+
+Season (temporada)
+
+id
+
+groupId
+
+name
+
+startDate
+
+endDate
+
+theme (gym, daily, viaje…)
+
+currentDayIndex
+
+streakDays
+
+DayChallenge
+
+seasonId
+
+date
+
+promptId
+
+promptText
+
+videos: List<VideoPost>
+
+VideoPost
+
+id
+
+uploader: UserRef
+
+filePath (local en esta fase)
+
+duration
+
+reactions: Map<ReactionType, int>
+
+createdAt
+
+Prompt
+
+id
+
+title
+
+description
+
+category (gym, storytime, etc.)
+
+5. Pantallas y explicación (vista por vista)
+
+Voy a agrupar por funcionalidad. Luego, en el punto 6 te doy orden de construcción.
+
+5.1. Auth / onboarding
+1. Splash Screen
+
+Objetivo:
+
+Mostrar logo.
+
+Comprobar si hay sesión local (token fake / userId guardado).
+
+Navegar a Login o a Home.
+
+Elementos:
+
+Logo + nombre REELITY.
+
+Spinner o pequeño indicador de carga.
+
+2. Onboarding / Intro
+
+Objetivo:
+Explicar en 2–4 pantallas qué es REELITY antes de pedir registro.
+
+Elementos:
+
+Carrusel con textos tipo:
+
+“Mini realities privados con tus amigos.”
+
+“Temporadas, retos diarios en vídeo.”
+
+“Resúmenes de vuestros mejores momentos.”
+
+Botones: Crear cuenta, Iniciar sesión.
+
+3. Login
+
+Objetivo:
+Permitir acceso a usuarios ya registrados (en esta fase, contra FakeAuth).
+
+Elementos:
+
+Campos:
+
+Email
+
+Contraseña
+
+Botones:
+
+Entrar
+
+“Crear cuenta”
+
+“He olvidado mi contraseña” (pendiente en fase posterior).
+
+Modales relacionados:
+
+Error de login (credenciales incorrectas).
+
+4. Registro
+
+Objetivo:
+Crear nuevo usuario en el fake backend.
+
+Elementos:
+
+Campos:
+
+Nombre
+
+Email
+
+Contraseña
+
+Confirmar contraseña
+
+Checkbox:
+
+Acepto Términos y Política (abre pantallas de legal).
+
+Botón Crear cuenta.
+
+5. Verificación / Mensaje de bienvenida (simple)
+
+En esta fase, puedes simplificar:
+
+Tras registrarse, mostrar una pantalla:
+
+“Cuenta creada, bienvenido a REELITY.”
+
+Botón Ir a Home.
+
+(No hace falta verificación real de email en la fase fake.)
+
+5.2. Home / Temporadas (núcleo del producto)
+6. Home – Lista de Temporadas
+
+Objetivo:
+Ser el “hub” principal tras login.
+
+Elementos:
+
+Sección Temporadas activas (cards con):
+
+Nombre temporada
+
+Nombre grupo
+
+Día X/Y
+
+Icono si has subido clip hoy
+
+Streak de grupo (pequeño contador)
+
+Sección Temporadas pasadas (colapsable).
+
+FAB o botón: Crear nueva temporada (o Crear grupo+temporada).
+
+7. Detalle de Temporada – Tab “Hoy”
+
+Objetivo:
+Ver el reto de hoy y los vídeos de tus amigos.
+
+Elementos:
+
+Texto del reto de hoy.
+
+Contador (si quieres mostrar tiempo restante).
+
+Lista de vídeos del día (usuarios con su miniatura).
+
+Botón principal: Grabar mi clip de hoy.
+
+Botón pequeño: ver Timeline o Resumen.
+
+8. Detalle de Temporada – Tab “Timeline”
+
+Objetivo:
+Ver todos los días de la temporada.
+
+Elementos:
+
+Lista Día 1, Día 2, Día 3, … Día N.
+
+Icono:
+
+Completo (todos subieron).
+
+Parcial (algunos).
+
+Vacío.
+
+Al tocar un día → abre Detalle de Día.
+
+9. Detalle de Temporada – Tab “Resumen”
+
+Objetivo:
+Mostrar recap básico de la temporada.
+
+En la fase fake puedes simplificar:
+
+Mostrar:
+
+% de días con participación.
+
+nº de vídeos subidos.
+
+Miembro con más vídeos.
+
+Placeholder de “Vídeo resumen” (a futuro).
+
+10. Detalle de Temporada – Tab “Miembros”
+
+Objetivo:
+Ver quién está en la temporada y su actividad.
+
+Elementos:
+
+Lista de miembros:
+
+Avatar
+
+Nombre
+
+Estado:
+
+🔥 activo
+
+😴 X días sin subir
+
+Owner/Admin puede tener iconito de estrella.
+
+11. Detalle de Día de Temporada
+
+Objetivo:
+Ver todos los vídeos de un día concreto.
+
+Elementos:
+
+Reto de ese día (texto).
+
+Lista de vídeos:
+
+Miniatura
+
+Usuario
+
+nº de reacciones
+
+Tap → abre reproductor (pantalla 12).
+
+12. Reproductor de Vídeo a pantalla completa
+
+Objetivo:
+Reproducir un vídeo y permitir interacción.
+
+Elementos:
+
+Vídeo vertical a pantalla completa.
+
+Capa superior:
+
+Nombre usuario + avatar.
+
+Info simple de la temporada/día.
+
+Capa lateral/bottom:
+
+Botones de reacción (🔥 😂 😍 🤡 💀).
+
+Botón “Comentarios” → pantalla 20.
+
+Swipe:
+
+Siguiente / anterior vídeo del mismo día.
+
+13. Crear / Editar Temporada
+
+Objetivo:
+Configurar temporada nueva (aunque en fake la persistencia sea local).
+
+Elementos:
+
+Nombre de temporada.
+
+Seleccionar grupo (o crear grupo en el flujo).
+
+Duración (7, 14, 30).
+
+Fecha de inicio.
+
+Tema (gym, daily, viaje, etc.).
+
+Botón Crear.
+
+5.3. Grupos / Comunidades
+14. Lista de Grupos
+
+Objetivo:
+Ver comunidades (grupos) donde participas.
+
+Elementos:
+
+Lista de grupos:
+
+Nombre
+
+nº miembros
+
+imagen/icono.
+
+Botón Crear grupo.
+
+15. Detalle de Grupo
+
+Objetivo:
+Ver info del grupo y sus temporadas.
+
+Elementos:
+
+Banner / nombre / descripción.
+
+Lista de miembros.
+
+Lista de temporadas:
+
+Activas
+
+Pasadas
+
+Botón:
+
+Crear nueva temporada en este grupo.
+
+Invitar a alguien (por username/enlace).
+
+16. Crear / Editar Grupo
+
+Objetivo:
+Definir comunidad.
+
+Elementos:
+
+Nombre.
+
+Imagen (opcional).
+
+Descripción.
+
+Config básica (solo owner puede crear temporadas, etc.)
+
+Botón Crear.
+
+17. Gestión de Invitaciones
+
+Objetivo:
+Ver invitaciones a grupos/temporadas.
+
+Elementos:
+
+Pestañas:
+
+Recibidas
+
+Enviadas
+
+En recibidas:
+
+Info del grupo/temporada
+
+Botones Aceptar / Rechazar.
+
+18. Pantalla de invitación por link
+
+Objetivo:
+Manejar cuando alguien entra por enlace de invitación.
+
+Elementos:
+
+Info básica del grupo/temporada.
+
+Botón Unirme.
+
+Si no está logueado:
+
+Primero lo manda a Login/Registro, luego vuelve aquí.
+
+5.4. Retos / Prompts
+19. Centro de Retos
+
+Objetivo:
+Ver catálogo de prompts (aunque al principio sean pocos y fijos).
+
+Elementos:
+
+Lista de categorías:
+
+Recomendados
+
+Gym
+
+Historias
+
+Familia
+
+etc.
+
+Cada reto:
+
+Título
+
+Descripción corta
+
+Botón Detalles.
+
+20. Detalle de Reto
+
+Objetivo:
+Entender un prompt antes de aplicarlo.
+
+Elementos:
+
+Título.
+
+Descripción.
+
+(Opcional) ejemplos / explicación extra.
+
+Botones:
+
+Usar este reto hoy en [temporada X].
+
+Guardar en favoritos.
+
+21. Mis Retos Guardados
+
+Objetivo:
+Acceso rápido a prompts que te gustan.
+
+Elementos:
+
+Lista de retos favoritos.
+
+Botón aplicar en temporada.
+
+5.5. Búsqueda / Explorar
+22. Pantalla de Búsqueda global
+
+Objetivo:
+Permitir encontrar personas, grupos, temporadas, retos.
+
+Elementos:
+
+Barra de búsqueda (texto).
+
+Chips para filtrar:
+
+Todo
+
+Personas
+
+Comunidades
+
+Temporadas
+
+Retos
+
+Resultados mezclados por sección (en “Todo”):
+
+Personas (3–5 resultados) con enlace a ver más.
+
+Comunidades.
+
+Temporadas.
+
+Retos.
+
+23. Resultados – Personas
+
+Objetivo:
+Ver lista completa de usuarios matcheando la búsqueda.
+
+Elementos:
+
+Lista de usuarios:
+
+Avatar
+
+Nombre
+
+@username
+
+Tap → Perfil público (pantalla 30).
+
+24. Resultados – Comunidades
+
+Objetivo:
+Ver grupos que se pueden descubrir.
+
+Elementos:
+
+Lista de grupos:
+
+Nombre
+
+Miembros
+
+Tags
+
+Tap → Detalle de grupo (pantalla 15).
+
+25. Resultados – Temporadas públicas (opcional)
+
+Objetivo:
+Si decides permitir temporadas “descubribles”.
+
+Elementos:
+
+Lista de temporadas:
+
+Nombre
+
+Grupo
+
+Día X/Y
+
+Tema.
+
+(Esto puede posponerse a fases posteriores.)
+
+26. Explorar comunidades (opcional como pantalla separada)
+
+Objetivo:
+Página tipo “Descubrir” con comunidades recomendadas.
+
+Elementos:
+
+Comunidades populares.
+
+Comunidades por categoría.
+
+Comunidades cerca de ti (a futuro).
+
+5.6. Interacción social (comentarios / estadísticas)
+27. Comentarios de un vídeo
+
+Objetivo:
+Ver y escribir comentarios.
+
+Elementos:
+
+Lista de comentarios (usuario + texto + tiempo).
+
+Campo de texto + botón enviar.
+
+28. Estadísticas personales
+
+Objetivo:
+Datos del propio usuario.
+
+Elementos:
+
+Días consecutivos participando (streak personal).
+
+Nº total de temporadas.
+
+Nº total de vídeos.
+
+Reacciones totales recibidas.
+
+29. Estadísticas de temporada/grupo
+
+Objetivo:
+Datos de meta del grupo.
+
+Elementos:
+
+% de días con participación completa.
+
+Miembros más activos.
+
+Clips más reaccionados.
+
+(Esto se puede simplificar mucho en la fase fake: números falsos.)
+
+5.7. Creación de contenido
+30. Pantalla de Grabación de Vídeo
+
+Objetivo:
+Grabar el clip del reto.
+
+Elementos:
+
+Vista de cámara.
+
+Botón grabar (toggle).
+
+Indicador tiempo (segundos).
+
+Switch de cámara frontal/trasera.
+
+31. Vista previa de vídeo
+
+Objetivo:
+Revisar el clip antes de subirlo.
+
+Elementos:
+
+Reproducción del vídeo.
+
+Botones:
+
+Regrabar
+
+Subir
+
+(Opcional) campo caption corto.
+
+32. Estado de subida
+
+Objetivo:
+Feedback de subida.
+
+Elementos:
+
+Barrita de progreso.
+
+Mensaje de éxito:
+
+“Tu clip está listo en el día X”.
+
+Botón “Ver día”.
+
+(En la fase fake realmente solo “guardas” la ruta local en un map/list.)
+
+33. Selección desde galería
+
+Objetivo:
+Permitir elegir vídeos existentes (opcional).
+
+Elementos:
+
+Grid/lista de vídeos locales.
+
+Al seleccionar → va a vista previa (31).
+
+5.8. Notificaciones
+
+(En fase sin backend real, puedes simular con local notifications o no implementarlas del todo aún.)
+
+34. Centro de Notificaciones
+
+Objetivo:
+Ver lista de eventos importantes.
+
+Elementos:
+
+Lista de notificaciones:
+
+Tipo:
+
+“Nuevo reto disponible”.
+
+“X ha subido un clip”.
+
+“Han reaccionado a tu vídeo”.
+
+“Te invitaron a una temporada”.
+
+Tap → navega a temporada / vídeo / invitación.
+
+35. Detalle de notificación (opcional)
+
+Objetivo:
+Mostrar notis más largas.
+
+Elementos:
+
+Texto largo.
+
+Botón “Ir a …”.
+
+5.9. Perfil y ajustes
+36. Perfil público de usuario
+
+Objetivo:
+Ver datos básicos de otro usuario.
+
+Elementos:
+
+Avatar, nombre, username.
+
+Breve bio.
+
+Stats básicas (temporadas comunes, etc.).
+
+Botón “Ver temporadas compartidas” (opcional).
+
+37. Mi Perfil
+
+Objetivo:
+Ver tus datos.
+
+Elementos:
+
+Igual que perfil público + botones:
+
+Editar perfil
+
+Ver mis estadísticas.
+
+38. Editar Perfil
+
+Objetivo:
+Cambiar datos personales.
+
+Elementos:
+
+Nombre.
+
+Username.
+
+Bio.
+
+Avatar (selección desde galería).
+
+39. Ajustes / Settings
+
+Objetivo:
+Config general.
+
+Secciones:
+
+Cuenta:
+
+Cambiar contraseña (fake).
+
+Cerrar sesión.
+
+Notificaciones:
+
+Activar/desactivar tipos.
+
+Privacidad:
+
+Quién puede invitarte a grupos (todos / amigos / nadie).
+
+Perfil público/privado.
+
+Idioma:
+
+(Si quieres permitir cambiar).
+
+Legal:
+
+Términos de uso.
+
+Política de privacidad.
+
+Ayuda:
+
+FAQ.
+
+Contactar soporte.
+
+40. FAQ / Ayuda
+
+Objetivo:
+Responder dudas iniciales.
+
+Elementos:
+
+Lista de preguntas frecuentes.
+
+Respuestas en texto simple.
+
+41. Contacto soporte
+
+Objetivo:
+Mandar feedback / problema.
+
+Elementos:
+
+Campos:
+
+Asunto
+
+Mensaje
+
+Botón enviar (en fase fake solo puedes simular).
+
+42. Términos de uso / Política de privacidad
+
+Objetivo:
+Mostrar texto legal.
+
+Elementos:
+
+Texto scrollable.
+
+5.10. Sistema / estados especiales
+43. Sin conexión
+
+Objetivo:
+Informar que no hay internet.
+
+Elementos:
+
+Icono.
+
+Texto “Sin conexión”.
+
+Botón “Reintentar”.
+
+(En fase fake, muchas cosas no dependen de red, pero es bueno tenerlo ya diseñado.)
+
+44. Error genérico
+
+Objetivo:
+Mostrar errores que no encajan en otra parte.
+
+Elementos:
+
+Texto genérico “Algo salió mal”.
+
+Botón “Volver” / “Reintentar”.
+
+45. App desactualizada (opcional para más adelante)
+
+Objetivo:
+Forzar update si la versión es vieja (más adelante, cuando haya backend).
+
+6. Orden de construcción (Roadmap Flutter sin backend)
+
+Te hago un orden práctico, para que en cada fase ya tengas algo usando:
+
+Fase 1 – Esqueleto y núcleo mínimo
+
+Splash (1)
+
+Onboarding/Intro (2)
+
+Login / Registro (3,4) – con fakeAuth.
+
+Home – Lista de temporadas (6) – con temporadas fake.
+
+Detalle de Temporada – Hoy (7) – reto y vídeos fake.
+
+Reproductor de vídeo (12) – con vídeos dummy locales o placeholders.
+
+Meta:
+Ya puedes entrar, ver “temporadas” y ver vídeos de ejemplo.
+
+Fase 2 – Grabación y subida local
+
+Pantalla de grabación (30).
+
+Vista previa y subida (31,32).
+
+Integrar subida con Detalle de Temporada – Hoy (7)
+→ al subir tu clip, apareces en la lista del día.
+
+Meta:
+Ya puedes vivir el loop: entrar → ver reto → grabar → ver tu vídeo junto a los demás.
+
+Fase 3 – Grupos y temporadas reales
+
+Lista de grupos (14).
+
+Crear grupo (16).
+
+Detalle de grupo (15).
+
+Crear temporada (13) asociada a grupo.
+
+Detalle de temporada – Timeline / Miembros (8,10,11).
+
+Meta:
+Ya puedes crear tu propio grupo y tu propia temporada, no sólo usar datos fake predefinidos.
+
+Fase 4 – Comentarios, reacciones y stats básicas
+
+Comentarios de vídeo (27).
+
+Reacciones en el reproductor (12).
+
+Stats personales simples (28).
+
+Stats de temporada simples (29).
+
+Meta:
+Interacción social básica: reaccionar, comentar, ver algo de stats.
+
+Fase 5 – Búsqueda y explorar
+
+Pantalla de búsqueda global (22).
+
+Resultados personas (23).
+
+Resultados comunidades (24).
+
+Perfil público (36).
+
+Meta:
+Ya puedes buscar personas y comunidades dentro del universo fake.
+
+Fase 6 – Perfil y ajustes
+
+Mi perfil (37).
+
+Editar perfil (38).
+
+Ajustes (39).
+
+Ajustes de notificaciones (sección simple).
+
+FAQ / Legal / Ayuda (40,42,41).
+
+Fase 7 – Notificaciones / pulido
+
+Centro de notificaciones (34).
+
+Sencillas notificaciones locales (recordatorio de subir clip, por ejemplo).
+
+Pantallas de error / sin conexión (43,44).
+
+Con esto tienes un documento técnico:
+
+Explica qué es REELITY.
+
+Explica el modelo de negocio actual (free total).
+
+Describe todas las pantallas principales.
+
+Y te da un orden lógico de construcción en Flutter sin backend.
+
+Cuando quieras, el siguiente paso puede ser bajar esto a algo como:
+
+estructura de carpetas del proyecto Flutter,
+
+y definición en código de los modelos User, Group, Season, etc., para que puedas abrir Android Studio / VS Code y empezar ya con el flutter create reelity.
